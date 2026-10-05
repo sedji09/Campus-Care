@@ -63,8 +63,8 @@ export async function registerUser(formData: FormData) {
 		await connection.end()
 
 		return { success: true }
-	} catch (error) {
+	} catch (error: any) {
 		console.error("Registration error:", error)
-		return { error: "Failed to create account. Please try again." }
+		return { error: error?.message?.includes("connect") ? "Database connection error. Please try again." : (error?.message || "Failed to create account. Please try again.") }
 	}
 }
