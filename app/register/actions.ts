@@ -63,8 +63,9 @@ export async function registerUser(formData: FormData) {
 		await connection.end()
 
 		return { success: true }
-	} catch (error: any) {
+	} catch (error: unknown) {
 		console.error("Registration error:", error)
-		return { error: error?.message?.includes("connect") ? "Database connection error. Please try again." : (error?.message || "Failed to create account. Please try again.") }
+		const errorMessage = error instanceof Error ? error.message : "Failed to create account. Please try again."
+		return { error: errorMessage.includes("connect") ? "Database connection error. Please try again." : errorMessage }
 	}
 }
