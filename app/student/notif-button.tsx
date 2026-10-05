@@ -49,7 +49,7 @@ export default function NotifButton({
 		return () => {
 			socket.disconnect();
 		};
-	}, []);
+	}, [userId]);
 
 	return (
 		<Popover>
