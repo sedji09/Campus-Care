@@ -29,18 +29,24 @@ export function LoginForm({
   }
 
   useEffect(() => {
-    const error = searchParams?.get("code")
+    const error = searchParams?.get("code") || searchParams?.get("error")
     if (error) {
       switch (error) {
         case "invalid_credentials":
+        case "CredentialsSignin":
           toast.error("Invalid email or password")
+          break
+        default:
+          toast.error("Failed to sign in. Please check your credentials.")
           break
       }
       const params = new URLSearchParams(searchParams?.toString())
+      params.delete('code')
       params.delete('error')
-      router.replace(`/login?${params.toString()}`)
+      const remaining = params.toString()
+      router.replace(remaining ? `/login?${remaining}` : "/login")
     }
-  }, [])
+  }, [searchParams, router])
 
   return (
     <form
@@ -59,16 +65,8 @@ export function LoginForm({
           <Label htmlFor="credentials-email">Email</Label>
           <Input id="credentials-email" name="email" type="email" placeholder="john.doe@example.com" required />
         </div>
-        <div className="grid gap-3">
-          <div className="flex items-center justify-between w-full">
-            <Label htmlFor="credentials-password">Password</Label>
-            <Link
-              className="text-sm leading-none font-medium underline underline-offset-2 text-primary"
-              href="/forgot-password"
-            >
-              Forgot password?
-            </Link>
-          </div>
+        <div className="grid gap-2">
+          <Label htmlFor="credentials-password">Password</Label>
           <div className="relative">
             <Input
               id="credentials-password"
@@ -93,10 +91,24 @@ export function LoginForm({
               )}
             </button>
           </div>
+          <div className="flex justify-end">
+            <Link
+              className="text-xs font-medium text-primary hover:underline underline-offset-4"
+              href="/forgot-password"
+            >
+              Forgot password?
+            </Link>
+          </div>
         </div>
         <Button type="submit" className="w-full">
           Login
         </Button>
+      </div>
+      <div className="text-center text-sm text-muted-foreground">
+        Don&apos;t have an account?{" "}
+        <Link href="/register" className="underline underline-offset-4 text-primary hover:opacity-80">
+          Sign up
+        </Link>
       </div>
     </form>
   )

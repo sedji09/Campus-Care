@@ -7,32 +7,34 @@ import { hashPassword } from "@/lib/utils"
 export async function updatePassword(userId: string, currentPassword: string, newPassword: string) {
 	const connection = await createConnection()
 
-	const [userCheck] = await connection.query<RowDataPacket[]>(
-		"SELECT * FROM Users WHERE id = ? AND password = ?",
-		[userId, hashPassword(currentPassword)]
-	)
-	if (userCheck.length === 0) {
-		await connection.end()
-		throw new Error("Current password is incorrect")
-	}
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const [updateResult]: any = await connection.query(
-		"UPDATE Users SET password = ? WHERE id = ?",
-		[hashPassword(newPassword), userId]
-	)
-	if (updateResult.affectedRows === 0) {
-		await connection.end()
-		throw new Error("Failed to update password")
-	}
+	try {
+		const [userCheck] = await connection.query<RowDataPacket[]>(
+			"SELECT * FROM Users WHERE id = ? AND password = ?",
+			[userId, hashPassword(currentPassword)]
+		)
+		if (userCheck.length === 0) {
+			throw new Error("Current password is incorrect")
+		}
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const [updateResult]: any = await connection.query(
+			"UPDATE Users SET password = ? WHERE id = ?",
+			[hashPassword(newPassword), userId]
+		)
+		if (updateResult.affectedRows === 0) {
+			throw new Error("Failed to update password")
+		}
 
-	await connection.end()
-	return true
+		return true
+	} finally {
+		await connection.end()
+	}
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function updateProfile(data: any, userId: number, password: string) {
 	const connection = await createConnection()
 	const { firstName, lastName, middleName, email, position } = data
+	const numericPosition = position !== undefined && position !== null && position !== "" ? Number(position) : 0
 	
 	try {
 		// Verify the user's password before allowing profile update
@@ -42,7 +44,6 @@ export async function updateProfile(data: any, userId: number, password: string)
 		);
 
 		if (userCheck.length === 0) {
-			await connection.end();
 			throw new Error("Incorrect password. Profile update failed");
 		}
 
@@ -62,31 +63,34 @@ export async function updateProfile(data: any, userId: number, password: string)
 			// Update existing profile
 			const [updateResult] = await connection.query(
 				"UPDATE ClinicProfile SET firstName = ?, lastName = ?, middleName = ?, position = ? WHERE userId = ?",
-				[firstName, lastName, middleName, position, userId]
+				[firstName, lastName, middleName || null, numericPosition, userId]
 			);
 			
 			if (!updateResult) {
 				throw new Error("Failed to update clinic profile");
 			}
 			
-			await connection.end()
 			return { success: true, message: "Profile updated successfully" };
 		} else {
 			// Create new profile
 			const [insertResult] = await connection.query(
-				"INSERT INTO ClinicProfile (userId, firstName, lastName, middleName) VALUES (?, ?, ?, ?)",
-				[userId, firstName, lastName, middleName]
+				"INSERT INTO ClinicProfile (userId, firstName, lastName, middleName, position) VALUES (?, ?, ?, ?, ?)",
+				[userId, firstName, lastName, middleName || null, numericPosition]
 			);
 			
 			if (!insertResult) {
 				throw new Error("Failed to create clinic profile");
 			}
 			
-			await connection.end()
 			return { success: true, message: "Profile created successfully" };
 		}
 	} catch (error) {
 		console.error("Error managing clinic profile:", error);
+		if (error instanceof Error && error.message.includes("Incorrect password")) {
+			throw error;
+		}
 		throw new Error("Failed to save clinic profile");
+	} finally {
+		await connection.end()
 	}
 }

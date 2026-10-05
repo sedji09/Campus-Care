@@ -4,6 +4,8 @@ import { NextResponse } from "next/server"
 
 const unAuthenticatedPaths = [
 	"/login",
+	"/register",
+	"/signup",
 ]
 
 const unAuthenticatedDyanmicPaths = [
