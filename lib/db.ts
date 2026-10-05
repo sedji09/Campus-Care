@@ -1,19 +1,26 @@
 import mysql from 'mysql2/promise';
 
-const dbConfig: mysql.ConnectionOptions = {
-	host: process.env.DB_HOST, 
-	user: process.env.DB_USER,
-	password: process.env.DB_PASSWORD,
-	database: process.env.DB_NAME,
-	port: process.env?.DB_PORT ? Number(process.env?.DB_PORT) : 3306,
-	ssl: process.env.DB_SSL === 'true' || (process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud.com'))
-		? { rejectUnauthorized: true }
-		: undefined,
-};
+export function getDbConfig(): mysql.ConnectionOptions {
+	const host = process.env.DB_HOST;
+	const isTiDB = Boolean(host && host.includes('tidbcloud.com'));
+	const port = process.env.DB_PORT ? Number(process.env.DB_PORT) : (isTiDB ? 4000 : 3306);
+	const requiresSsl = process.env.DB_SSL === 'true' || isTiDB;
+
+	return {
+		host,
+		user: process.env.DB_USER,
+		password: process.env.DB_PASSWORD,
+		database: process.env.DB_NAME || 'test',
+		port,
+		ssl: requiresSsl ? { rejectUnauthorized: true } : undefined,
+		connectTimeout: 20000,
+	};
+}
 
 export const createConnection = async () => {
 	try {
-		const connection = await mysql.createConnection(dbConfig);
+		const config = getDbConfig();
+		const connection = await mysql.createConnection(config);
 		return connection;
 	} catch (error) {
 		console.error('Error connecting to the database:', error);
@@ -23,7 +30,8 @@ export const createConnection = async () => {
 
 export const createPool = () => {
 	try {
-		const pool = mysql.createPool(dbConfig);
+		const config = getDbConfig();
+		const pool = mysql.createPool(config);
 		console.log('Database pool created successfully');
 		return pool;
 	} catch (error) {
