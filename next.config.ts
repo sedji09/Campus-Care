@@ -1,10 +1,5 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  output: 'standalone',
-  experimental: {
-    nodeMiddleware: true,
-  },
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
