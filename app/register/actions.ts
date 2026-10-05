@@ -42,8 +42,9 @@ export async function registerUser(formData: FormData) {
 		return { error: "Passwords do not match." }
 	}
 
+	let connection;
 	try {
-		const connection = await createConnection()
+		connection = await createConnection()
 
 		const [existingUsers] = await connection.query<RowDataPacket[]>(
 			"SELECT id FROM Users WHERE email = ?",
@@ -51,7 +52,6 @@ export async function registerUser(formData: FormData) {
 		)
 
 		if (existingUsers.length > 0) {
-			await connection.end()
 			return { error: "An account with this email already exists." }
 		}
 
@@ -60,12 +60,18 @@ export async function registerUser(formData: FormData) {
 			[email, hashPassword(password)]
 		)
 
-		await connection.end()
-
 		return { success: true }
 	} catch (error: unknown) {
 		console.error("Registration error:", error)
 		const errorMessage = error instanceof Error ? error.message : "Failed to create account. Please try again."
-		return { error: errorMessage.includes("connect") ? "Database connection error. Please try again." : errorMessage }
+		return { error: errorMessage }
+	} finally {
+		if (connection) {
+			try {
+				await connection.end()
+			} catch {
+				// ignore cleanup error
+			}
+		}
 	}
 }

@@ -12,7 +12,12 @@ export function getDbConfig(): mysql.ConnectionOptions {
 		password: process.env.DB_PASSWORD,
 		database: process.env.DB_NAME || 'test',
 		port,
-		ssl: requiresSsl ? { rejectUnauthorized: true } : undefined,
+		ssl: requiresSsl
+			? {
+					minVersion: 'TLSv1.2',
+					rejectUnauthorized: true,
+			  }
+			: undefined,
 		connectTimeout: 20000,
 	};
 }
